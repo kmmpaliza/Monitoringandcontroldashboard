@@ -6,18 +6,18 @@ import { AlertModal } from './components/AlertModal';
 import { EventLog } from './components/EventLog';
 import { Chute, Event } from './types';
 
+import { getAllChutes } from '../api/chuteStatusAPI';
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string>('');
   const [isConnected, setIsConnected] = useState(true);
-  const [chutes, setChutes] = useState<Chute[]>([
-    { id: 1, name: 'Chute 1', status: 'Normal', fillLevel: 45, lastUpdated: '10:23:15 AM', hasActiveAlert: false },
-    { id: 2, name: 'Chute 2', status: 'Warning', fillLevel: 75, lastUpdated: '10:20:42 AM', hasActiveAlert: false },
-    { id: 3, name: 'Chute 3', status: 'Full', fillLevel: 100, lastUpdated: '10:15:30 AM', hasActiveAlert: true },
-    { id: 4, name: 'Chute 4', status: 'Normal', fillLevel: 30, lastUpdated: '10:25:01 AM', hasActiveAlert: false },
-    { id: 5, name: 'Chute 5', status: 'Offline', fillLevel: 0, lastUpdated: '09:45:12 AM', hasActiveAlert: false },
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  
+  //FOR API USE
+  const [chutes, setChutes] = useState<Chute[]>([]);
 
   const [events, setEvents] = useState<Event[]>([
     { timestamp: '10:15:30 AM', chuteName: 'Chute 3', eventType: 'Full', source: 'IoT Sensor', status: 'Active' },
@@ -36,7 +36,7 @@ export default function App() {
   useEffect(() => {
     // Only run if authenticated
     if (!isAuthenticated) return;
-    
+
     const interval = setInterval(() => {
       // Randomly change connection status (90% connected)
       if (Math.random() > 0.95) {
@@ -51,17 +51,33 @@ export default function App() {
   useEffect(() => {
     // Only show alert if authenticated
     if (!isAuthenticated) return;
-    
-    const fullChute = chutes.find(c => c.status === 'Full' && c.hasActiveAlert);
+
+    const fullChute = chutes.find(c => c.status === 'Full');
     if (fullChute) {
       setAlertChute(fullChute);
     }
   }, [isAuthenticated]);
 
+  // API CALL
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await getAllChutes();
+        setChutes(result);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isAuthenticated]);
+
   const addEvent = (chuteName: string, eventType: string, source: string = 'Operator', status: 'Active' | 'Resolved' = 'Resolved') => {
     const now = new Date();
     const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    
+
     setEvents(prev => [{
       timestamp,
       chuteName,
@@ -72,58 +88,58 @@ export default function App() {
   };
 
   const handleMarkCleared = (chuteId: number) => {
-    setChutes(prev => prev.map(chute => 
-      chute.id === chuteId 
+    setChutes(prev => prev.map(chute =>
+      chute.id === chuteId
         ? { ...chute, status: 'Normal', fillLevel: 0, hasActiveAlert: false, lastUpdated: new Date().toLocaleTimeString('en-US') }
         : chute
     ));
-    
+
     const chute = chutes.find(c => c.id === chuteId);
     if (chute) {
       addEvent(chute.name, 'Cleared', 'Operator', 'Resolved');
-      
+
       // Update event status for this chute
-      setEvents(prev => prev.map(event => 
+      setEvents(prev => prev.map(event =>
         event.chuteName === chute.name && event.status === 'Active'
           ? { ...event, status: 'Resolved' }
           : event
       ));
     }
-    
+
     if (alertChute?.id === chuteId) {
       setAlertChute(null);
     }
   };
 
   const handleReset = (chuteId: number) => {
-    setChutes(prev => prev.map(chute => 
-      chute.id === chuteId 
+    setChutes(prev => prev.map(chute =>
+      chute.id === chuteId
         ? { ...chute, fillLevel: 0, hasActiveAlert: false, lastUpdated: new Date().toLocaleTimeString('en-US') }
         : chute
     ));
-    
+
     const chute = chutes.find(c => c.id === chuteId);
     if (chute) {
       addEvent(chute.name, 'Reset');
     }
-    
+
     if (alertChute?.id === chuteId) {
       setAlertChute(null);
     }
   };
 
   const handleAcknowledge = (chuteId: number) => {
-    setChutes(prev => prev.map(chute => 
-      chute.id === chuteId 
+    setChutes(prev => prev.map(chute =>
+      chute.id === chuteId
         ? { ...chute, hasActiveAlert: false }
         : chute
     ));
-    
+
     const chute = chutes.find(c => c.id === chuteId);
     if (chute) {
       addEvent(chute.name, 'Acknowledged');
     }
-    
+
     if (alertChute?.id === chuteId) {
       setAlertChute(null);
     }
@@ -140,7 +156,7 @@ export default function App() {
       setIsAuthenticated(true);
       setCurrentUser(username);
       setLoginError(null);
-      
+
       // Add login event
       const now = new Date();
       const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -181,9 +197,6 @@ export default function App() {
               <ChuteCard
                 key={chute.id}
                 chute={chute}
-                onMarkCleared={() => handleMarkCleared(chute.id)}
-                onReset={() => handleReset(chute.id)}
-                onAcknowledge={() => handleAcknowledge(chute.id)}
               />
             ))}
           </div>

@@ -1,14 +1,12 @@
 import { Package, AlertCircle, Clock, MoreVertical, Zap } from 'lucide-react';
 import { Chute } from '../types';
+import { formatUTCToCETShort } from "../../utils/dateUtils";
 
 interface ChuteCardProps {
   chute: Chute;
-  onMarkCleared: () => void;
-  onReset: () => void;
-  onAcknowledge: () => void;
 }
 
-export function ChuteCard({ chute, onMarkCleared, onReset, onAcknowledge }: ChuteCardProps) {
+export function ChuteCard({ chute}: ChuteCardProps) {
   const getStatusColor = () => {
     switch (chute.status) {
       case 'Normal':
@@ -80,7 +78,7 @@ export function ChuteCard({ chute, onMarkCleared, onReset, onAcknowledge }: Chut
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">{chute.name}</h3>
-              {chute.hasActiveAlert && (
+              {chute.status == 'Full' && (
                 <div className="flex items-center gap-1 text-red-400 text-sm mt-1 animate-pulse">
                   <AlertCircle className="size-4" />
                   <span className="font-medium">Active Alert</span>
@@ -117,35 +115,7 @@ export function ChuteCard({ chute, onMarkCleared, onReset, onAcknowledge }: Chut
         {/* Last Updated */}
         <div className="flex items-center gap-2 text-sm text-purple-300/70 mb-4">
           <Clock className="size-4" />
-          <span>Last updated: {chute.lastUpdated}</span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 pt-4 border-t border-purple-500/20">
-          <button
-            onClick={onMarkCleared}
-            className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-green-500/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={chute.status === 'Normal'}
-          >
-            ✅ Mark Cleared
-          </button>
-          <button
-            onClick={onReset}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-cyan-500/30 text-sm"
-          >
-            🔄 Reset
-          </button>
-          <button
-            onClick={onAcknowledge}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!chute.hasActiveAlert}
-          >
-            Acknowledge
-          </button>
-          <button className="px-3 py-2 bg-slate-800/50 hover:bg-slate-700/50 text-cyan-300 rounded-lg font-medium transition-all shadow-lg border border-purple-500/20 text-sm flex items-center gap-1">
-            <MoreVertical className="size-4" />
-            More
-          </button>
+          <span>Last updated: {formatUTCToCETShort(chute.dateTimeModified)}</span>
         </div>
       </div>
     </div>

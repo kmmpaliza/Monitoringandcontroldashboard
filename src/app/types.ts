@@ -3,10 +3,10 @@ export type ChuteStatus = 'Normal' | 'Warning' | 'Full' | 'Offline';
 export interface Chute {
   id: number;
   name: string;
-  status: ChuteStatus;
+  barcode: string;
   fillLevel: number;
-  lastUpdated: string;
-  hasActiveAlert: boolean;
+  dateTimeModified: string;
+  status: ChuteStatus;
 }
 
 export interface Event {
